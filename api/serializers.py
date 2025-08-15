@@ -1,7 +1,13 @@
 # serializers.py
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile
+from .models import Profile, Folders, Folder_Files
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -41,7 +47,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-
 class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
@@ -49,3 +54,85 @@ class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['username', 'email', 'address', 'status', 'profile_picture']
+
+
+class FolderSerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Folders
+        fields = ['id', 'name', 'created_by', 'date_creation']
+        read_only_fields = ['created_by', 'date_creation']
+
+
+class FolderFilesSerializer(serializers.ModelSerializer):
+    uploaded_by = UserSerializer(read_only=True)
+    file_size = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Folder_Files
+        fields = [f.name for f in Folder_Files._meta.fields] + \
+            ['uploaded_by', 'file_size']
+        read_only_fields = ['uploaded_by', 'date_creation']
+
+    def get_file_size(self, obj):
+        if obj.file:
+            size = obj.file.size  # bytes
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024:
+                    return f"{size:.2f} {unit}"
+                size /= 1024
+        return "0 B"
+
+
+class FolderFileCountSerializer(serializers.Serializer):
+    folder_id = serializers.IntegerField()
+    file_count = serializers.IntegerField()
+
+
+class FolderTotalSizeSerializer(serializers.ModelSerializer):
+    total_size_bytes = serializers.SerializerMethodField()
+    total_size_human = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Folders
+        fields = ['id', 'name', 'created_by', 'date_creation',
+                  'total_size_bytes', 'total_size_human']
+
+    def get_total_size_bytes(self, obj):
+        return sum(f.file.size for f in Folder_Files.objects.filter(folder=obj) if f.file)
+
+    def get_total_size_human(self, obj):
+        size = self.get_total_size_bytes(obj)
+        if size < 1024:
+            return f"{size} B"
+        elif size < 1024 ** 2:
+            return f"{size / 1024:.2f} KB"
+        elif size < 1024 ** 3:
+            return f"{size / (1024 ** 2):.2f} MB"
+        else:
+            return f"{size / (1024 ** 3):.2f} GB"
+
+
+class FileArchiveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder_Files
+        fields = '__all__'
+        read_only_fields = ['id']
+
+    def update(self, instance, validated_data):
+        instance.is_archive = True
+        instance.save()
+        return instance
+
+
+class FileUnarchiveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder_Files
+        fields = '__all__'
+        read_only_fields = ['id']
+
+    def update(self, instance, validated_data):
+        instance.is_archive = False
+        instance.save()
+        return instance

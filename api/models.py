@@ -48,3 +48,12 @@ class Folder_Files(models.Model):
     date_creation = models.DateTimeField(auto_now_add=True)
     is_confidential = models.BooleanField(default=False)
     is_archive = models.BooleanField(default=False)
+
+
+
+class Logs(models.Model):
+    info1 = models.TextField(blank=True, null=True)
+    info2 = models.TextField(blank=True, null=True)
+    info3 = models.TextField(blank=True, null=True)
+    info4 = models.TextField(blank=True, null=True)
+    log_date = models.DateTimeField(auto_now_add=True)

@@ -1,7 +1,7 @@
 # serializers.py
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile, Folders, Folder_Files
+from .models import Profile, Folders, Folder_Files, Logs
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -72,7 +72,7 @@ class FolderFilesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder_Files
         fields = [f.name for f in Folder_Files._meta.fields] + \
-            ['uploaded_by', 'file_size']
+            ['uploaded_by', 'file_size', 'is_confidential', 'is_archive']
         read_only_fields = ['uploaded_by', 'date_creation']
 
     def get_file_size(self, obj):
@@ -136,3 +136,46 @@ class FileUnarchiveSerializer(serializers.ModelSerializer):
         instance.is_archive = False
         instance.save()
         return instance
+
+
+class ConfidentialFileSerializer(serializers.ModelSerializer):
+    file_size_bytes = serializers.SerializerMethodField()
+    file_size_human = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Folder_Files
+        fields = [
+            'id',
+            'file_name',
+            'file',
+            'is_confidential',
+            'is_archive',
+            'date_creation',
+            'file_size_bytes',
+            'file_size_human',
+        ]
+        read_only_fields = ['is_confidential', 'date_creation',
+                            'file_size_bytes', 'file_size_human']
+
+    def get_file_size_bytes(self, obj):
+        if obj.file:
+            return obj.file.size
+        return 0
+
+    def get_file_size_human(self, obj):
+        size = self.get_file_size_bytes(obj)
+        if size < 1024:
+            return f"{size} B"
+        elif size < 1024 ** 2:
+            return f"{size / 1024:.2f} KB"
+        elif size < 1024 ** 3:
+            return f"{size / (1024 ** 2):.2f} MB"
+        else:
+            return f"{size / (1024 ** 3):.2f} GB"
+
+
+
+class LogsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Logs
+        fields = '__all__'

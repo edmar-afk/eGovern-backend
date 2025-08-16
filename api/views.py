@@ -5,10 +5,10 @@ from django.contrib.auth.models import User
 from rest_framework import status, generics
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import RegisterSerializer, ProfileSerializer, FolderSerializer, FileUnarchiveSerializer, FileArchiveSerializer, FolderFileCountSerializer, FolderTotalSizeSerializer, FolderFilesSerializer
-from .models import Profile, Folders, Folder_Files
+from .serializers import ConfidentialFileSerializer, RegisterSerializer, LogsSerializer, ProfileSerializer, FolderSerializer, FileUnarchiveSerializer, FileArchiveSerializer, FolderFileCountSerializer, FolderTotalSizeSerializer, FolderFilesSerializer
+from .models import Profile, Folders, Folder_Files, Logs
 from django.shortcuts import get_object_or_404
-
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -104,7 +104,26 @@ class FolderTotalSizeView(APIView):
         serializer = FolderTotalSizeSerializer(folder)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class RenameFolderView(APIView):
+    permission_classes = [AllowAny]
 
+    def put(self, request, folder_id):
+        try:
+            folder = Folders.objects.get(id=folder_id)
+        except Folders.DoesNotExist:
+            return Response({"error": "Folder not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        new_name = request.data.get("name")
+        if not new_name:
+            return Response({"error": "Name is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        folder.name = new_name
+        folder.save()
+
+        serializer = FolderSerializer(folder)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
 class DeleteFolderView(APIView):
     permission_classes = [AllowAny]
 
@@ -189,3 +208,61 @@ class FileUnarchiveView(generics.UpdateAPIView):
     queryset = Folder_Files.objects.all()
     serializer_class = FileUnarchiveSerializer
     permission_classes = [AllowAny]
+    
+    
+    
+    
+    
+class ConfidentialFileUploadView(generics.CreateAPIView):
+    queryset = Folder_Files.objects.all()
+    serializer_class = ConfidentialFileSerializer
+    permission_classes = [AllowAny]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def perform_create(self, serializer):
+        user_id = self.kwargs.get("user_id")
+        user = get_object_or_404(User, id=user_id)
+        serializer.save(uploaded_by=user, is_confidential=True)
+        
+class ConfidentialFileListView(generics.ListAPIView):
+    serializer_class = ConfidentialFileSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return Folder_Files.objects.filter(is_confidential=True)
+
+
+class ConfidentialFileDeleteView(APIView):
+    permission_classes = [AllowAny]
+    def delete(self, request, pk, format=None):
+        try:
+            file = Folder_Files.objects.get(id=pk, is_confidential=True)
+            file.file.delete(save=False)  # delete the actual file from storage
+            file.delete()
+            return Response({"detail": "Confidential file deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+        except Folder_Files.DoesNotExist:
+            return Response({"detail": "Confidential file not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+
+
+class RecentUploadFileView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = FolderFilesSerializer
+    def get_queryset(self):
+        return Folder_Files.objects.filter(
+            is_archive=False,
+            is_confidential=False
+        ).order_by('-date_creation')[:5]
+        
+        
+class LogsCreateView(generics.CreateAPIView):
+    permission_classes = [AllowAny]
+    queryset = Logs.objects.all()
+    serializer_class = LogsSerializer
+    
+    
+class LogsListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    queryset = Logs.objects.all().order_by('-log_date')
+    serializer_class = LogsSerializer

@@ -78,13 +78,14 @@ class FolderFileCountView(APIView):
 
     def get(self, request, folder_id):
         folder = get_object_or_404(Folders, id=folder_id)
-        file_count = Folder_Files.objects.filter(folder=folder).count()
+        file_count = Folder_Files.objects.filter(folder=folder).exclude(is_archive=True).count()
 
         serializer = FolderFileCountSerializer({
             'folder_id': folder.id,
             'file_count': file_count
         })
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class FolderDetailView(APIView):

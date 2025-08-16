@@ -100,7 +100,7 @@ class FolderTotalSizeSerializer(serializers.ModelSerializer):
                   'total_size_bytes', 'total_size_human']
 
     def get_total_size_bytes(self, obj):
-        return sum(f.file.size for f in Folder_Files.objects.filter(folder=obj) if f.file)
+        return sum(f.file.size for f in Folder_Files.objects.filter(folder=obj).exclude(is_archive=True) if f.file)
 
     def get_total_size_human(self, obj):
         size = self.get_total_size_bytes(obj)
@@ -172,7 +172,6 @@ class ConfidentialFileSerializer(serializers.ModelSerializer):
             return f"{size / (1024 ** 2):.2f} MB"
         else:
             return f"{size / (1024 ** 3):.2f} GB"
-
 
 
 class LogsSerializer(serializers.ModelSerializer):

@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile, Folders, Folder_Files, Logs
+from django.db import models
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -178,3 +179,26 @@ class LogsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Logs
         fields = '__all__'
+
+
+class FolderFilesTotalSizeSerializer(serializers.Serializer):
+    total_size_bytes = serializers.SerializerMethodField()
+    total_size_human = serializers.SerializerMethodField()
+
+    def get_total_size_bytes(self, obj):
+        total = 0
+        for f in Folder_Files.objects.all():
+            if f.file and hasattr(f.file, 'size'):
+                try:
+                    total += f.file.size
+                except Exception:
+                    pass  # skip files that can't be accessed
+        return total
+
+    def get_total_size_human(self, obj):
+        size = self.get_total_size_bytes(obj)
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+            size /= 1024
+        return f"{size:.2f} PB"

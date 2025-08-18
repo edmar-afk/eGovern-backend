@@ -23,7 +23,7 @@ urlpatterns = [
     path('files/<int:pk>/archive/', views.FileArchiveView.as_view(), name='archive_folder_file'),
     path('files/archives/', views.FileArchiveListView.as_view(), name='folder_file_archives'),
     path('files/<int:pk>/unarchive/', views.FileUnarchiveView.as_view(), name='folder_file_unarchive'),
-    
+    path('files/total-size/', views.FolderFilesTotalSizeView.as_view(), name='files-total-size'),
 
     path('file/upload/<int:user_id>/', views.ConfidentialFileUploadView.as_view(), name='confidential-file-upload'),
     path('file/confidential/', views.ConfidentialFileListView.as_view(), name='confidential-file-list'),
@@ -33,4 +33,7 @@ urlpatterns = [
     
     path('upload-logs/', views.LogsCreateView.as_view(), name='upload-logs'),
     path('logs/', views.LogsListView.as_view(), name='logs-list'),
+    
+    
+    path("convert-to-pdf/", views.convert_to_pdf, name="convert-to-pdf"),
 ]

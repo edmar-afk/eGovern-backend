@@ -36,4 +36,7 @@ urlpatterns = [
     
     
     path("convert-to-pdf/", views.convert_to_pdf, name="convert-to-pdf"),
+    
+    path('users/<int:user_id>/delete/', views.DeleteUserView.as_view()),
+    path('non-staff-users/', views.NonStaffUsersView.as_view(), name='non-staff-users'),
 ]

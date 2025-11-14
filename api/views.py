@@ -325,3 +325,26 @@ def convert_to_pdf(request):
     except Exception as e:
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
+
+
+class DeleteUserView(APIView):
+    permission_classes = [AllowAny]
+    
+    def delete(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user.delete()
+        return Response({"detail": "User deleted successfully"}, status=status.HTTP_200_OK)
+    
+    
+class NonStaffUsersView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        users = User.objects.filter(is_staff=False, is_superuser=False)
+        profiles = Profile.objects.filter(user__in=users)
+        serializer = ProfileSerializer(profiles, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

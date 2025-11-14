@@ -10,7 +10,11 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = '__all__'
 
-
+class UserDeleteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id']
+        
 class RegisterSerializer(serializers.ModelSerializer):
     address = serializers.CharField(
         write_only=True, required=False, allow_blank=True)
@@ -49,12 +53,17 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='user.id', read_only=True)
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
 
     class Meta:
         model = Profile
-        fields = ['username', 'email', 'address', 'status', 'profile_picture']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'address', 'status', 'profile_picture']
+
+
 
 
 class FolderSerializer(serializers.ModelSerializer):

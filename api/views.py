@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from rest_framework import status, generics
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import ConfidentialFileSerializer, FolderFilesTotalSizeSerializer, RegisterSerializer, LogsSerializer, ProfileSerializer, FolderSerializer, FileUnarchiveSerializer, FileArchiveSerializer, FolderFileCountSerializer, FolderTotalSizeSerializer, FolderFilesSerializer
+from .serializers import FileUbackupSerializer, ConfidentialFileSerializer, FolderFilesTotalSizeSerializer, RegisterSerializer, LogsSerializer, ProfileSerializer, FolderSerializer, FileUnarchiveSerializer, FileArchiveSerializer, FolderFileCountSerializer, FolderTotalSizeSerializer, FolderFilesSerializer
 from .models import Profile, Folders, Folder_Files, Logs
 from django.shortcuts import get_object_or_404
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -153,7 +153,8 @@ class FolderFilesListView(generics.ListAPIView):
         folder_id = self.kwargs['folder_id']
         return Folder_Files.objects.filter(
             folder_id=folder_id,
-            is_archive=False
+            is_archive=False,
+            is_backup=False
         )
 
 
@@ -348,3 +349,30 @@ class NonStaffUsersView(APIView):
         profiles = Profile.objects.filter(user__in=users)
         serializer = ProfileSerializer(profiles, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class SetBackupAPIView(APIView):
+    permission_classes = [AllowAny]
+    
+    def patch(self, request, file_id):
+        try:
+            file_instance = Folder_Files.objects.get(id=file_id)
+        except Folder_Files.DoesNotExist:
+            return Response({"error": "File not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        file_instance.is_backup = True
+        file_instance.save()
+        return Response({"success": f"File '{file_instance.file_name}' marked as backup."}, status=status.HTTP_200_OK)
+
+class FileBackupListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = FolderFilesSerializer
+
+    def get_queryset(self):
+        return Folder_Files.objects.filter(is_backup=True)
+    
+    
+    
+class FileUnbackupView(generics.UpdateAPIView):
+    queryset = Folder_Files.objects.all()
+    serializer_class = FileUbackupSerializer
+    permission_classes = [AllowAny]

@@ -211,3 +211,21 @@ class FolderFilesTotalSizeSerializer(serializers.Serializer):
                 return f"{size:.2f} {unit}"
             size /= 1024
         return f"{size:.2f} PB"
+
+
+class FileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder_Files
+        fields = '__all__'
+        
+        
+class FileUbackupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder_Files
+        fields = '__all__'
+        read_only_fields = ['id']
+
+    def update(self, instance, validated_data):
+        instance.is_backup = False
+        instance.save()
+        return instance

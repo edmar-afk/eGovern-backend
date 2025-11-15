@@ -48,6 +48,7 @@ class Folder_Files(models.Model):
     date_creation = models.DateTimeField(auto_now_add=True)
     is_confidential = models.BooleanField(default=False)
     is_archive = models.BooleanField(default=False)
+    is_backup = models.BooleanField(default=False)
 
 
 

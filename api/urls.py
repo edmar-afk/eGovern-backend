@@ -39,4 +39,8 @@ urlpatterns = [
     
     path('users/<int:user_id>/delete/', views.DeleteUserView.as_view()),
     path('non-staff-users/', views.NonStaffUsersView.as_view(), name='non-staff-users'),
+    
+    path('set-backup/<int:file_id>/', views.SetBackupAPIView.as_view(), name='set-backup'),
+    path('files/backups/', views.FileBackupListView.as_view(), name='file_backups-list'),
+    path('files/<int:pk>/unbackup/', views.FileUnbackupView.as_view(), name='unbackup_folder_file'),
 ]
